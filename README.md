@@ -23,7 +23,7 @@ npm run dev
 
 ## Live URL
 
-[placeholder — will be added after deploy]
+https://hubops-fullstack.vercel.app
 
 ## Tech Decisions
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ServiceGrid from "@/components/ServiceGrid";
 import type { Service } from "@/types/service";
+import { services as localServices } from "@/data/services";
 
 export const metadata: Metadata = {
   title: "Our Services",
@@ -9,24 +10,22 @@ export const metadata: Metadata = {
 };
 
 export default async function ServicesPage() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/services`);
+  let services: Service[] = localServices;
 
-  if (!res.ok) {
-    return (
-      <main className="bg-gray-50 py-16 text-gray-900">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
-            We could not load services right now. Please try again
-            later.
-          </div>
-        </div>
-      </main>
-    );
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (siteUrl) {
+    try {
+      const res = await fetch(`${siteUrl}/api/services`, {
+        next: { revalidate: 3600 },
+      });
+
+      if (res.ok) {
+        services = (await res.json()) as Service[];
+      }
+    } catch {
+      services = localServices;
+    }
   }
-
-  const services = (await res.json()) as Service[];
 
   return (
     <main className="bg-gray-50 py-16 text-gray-900">
