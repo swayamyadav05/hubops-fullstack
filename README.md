@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HubOps Full Stack Assignment
 
-## Getting Started
+## Setup
 
-First, run the development server:
+1. Clone the repository.
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Copy environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+4. Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Live URL
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+[placeholder — will be added after deploy]
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Decisions
 
-## Learn More
+### Why Next.js API Routes instead of a separate Express backend
 
-To learn more about Next.js, take a look at the following resources:
+Using Next.js API Routes keeps frontend and backend in a single codebase and deployment unit. This reduces operational overhead, avoids duplicate project scaffolding, and removes cross-origin setup complexity because API and UI share the same origin. It fully satisfies the backend requirement while keeping delivery simple and maintainable.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Why SSG over SSR for /services
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The services data is not user-specific and does not require per-request real-time rendering. Static Site Generation prebuilds the page at deploy time and serves it from CDN edge locations for consistently fast response times and strong SEO. SSR would add server compute and latency on every request without a product benefit for this page.
 
-## Deploy on Vercel
+### Why Tailwind CSS v4
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Tailwind CSS v4 provides CSS-first configuration with minimal setup and no required Tailwind config file for this scope. It helps keep styling co-located, reduces custom CSS overhead, and supports smaller output with a faster iteration loop.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Component Structure
+
+ServiceCard is a single, purely presentational unit responsible for rendering one service item. ServiceGrid is a layout wrapper that receives the services array and maps items to ServiceCard components. This separation keeps components focused and easy to extend as requirements evolve.
+
+## Data Fetching
+
+The /services page is implemented as a Server Component and fetches data from the API route with an absolute URL. Absolute URLs are required during build-time rendering for SSG because there is no browser location context available at build execution time.
+
+## SEO & Performance
+
+- metadata exports provide unique title and description values per route.
+- Semantic HTML structure (main and headings) improves crawler understanding.
+- SSG returns pre-rendered HTML instead of a client-only shell, improving crawlability and first meaningful paint.
+- loading.tsx provides an immediate skeleton state during route transition to reduce perceived jank.
+
+## API Thinking
+
+**How would you scale this API if traffic increases?**
+Add a short-TTL cache layer using Redis or Vercel KV for read-heavy endpoints. Move from in-memory data to PostgreSQL with connection pooling as data volume and query complexity grow. For extreme traffic, extract the API into an independently scalable service behind CDN caching.
+
+**What security concerns should be addressed in production?**
+Apply per-IP rate limiting, enforce HTTPS, restrict CORS to known origins where needed, and validate all input/query parameters. If write operations are introduced, require authenticated requests with scoped authorization.
+
+**How would you version this API?**
+Adopt URL-based versioning, for example /api/v1/services. Introduce /api/v2/services for breaking changes, run both versions during a deprecation window, and communicate deprecation timelines with response headers and release notes.
+
+## SEO & Performance (Written Questions)
+
+**What makes your page SEO-friendly?**
+Static generation delivers fully rendered HTML to crawlers, metadata is page-specific, semantic HTML improves structure, and CDN delivery helps keep load times fast.
+
+**What could be improved if this went live?**
+Add Open Graph and Twitter card metadata, provide robots.txt and sitemap.xml, include JSON-LD structured data for services, and use next/image for optimized image delivery where applicable.
+
+**How would you measure performance?**
+Use Vercel Analytics to monitor Core Web Vitals in production and add Lighthouse CI in GitHub Actions to detect regressions before deployment.
+
+## Refactoring Scenario
+
+**If a junior developer joins and this grows 3x in complexity, what would you refactor first?**
+Refactor the data layer first. The current in-memory services source should be replaced with a repository abstraction such as services.repository.ts. Keeping API routes and page components dependent on repository interfaces makes storage migration to PostgreSQL or a CMS straightforward without UI or routing rewrites.
+
+## Architecture Diagram
+
+[Optional — add PNG if time permits]
